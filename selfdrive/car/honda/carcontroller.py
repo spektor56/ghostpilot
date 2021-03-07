@@ -156,10 +156,10 @@ class CarController():
           pass # TODO: implement
         else:
           apply_gas = clip(actuators.gas, 0., 1.)
-          if CS.accEnabled:
+          if not CS.accEnabled:
             apply_gas = 0.
           apply_brake = int(clip(self.brake_last * P.BRAKE_MAX, 0, P.BRAKE_MAX - 1))
-          if CS.accEnabled:
+          if not CS.accEnabled:
             apply_brake = 0
           pump_on, self.last_pump_ts = brake_pump_hysteresis(apply_brake, self.apply_brake_last, self.last_pump_ts, ts)
           can_sends.append(hondacan.create_brake_command(self.packer, apply_brake, pump_on,
