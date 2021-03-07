@@ -155,16 +155,17 @@ class CarController():
         if CS.CP.carFingerprint in HONDA_BOSCH:
           pass # TODO: implement
         else:
-          apply_gas = clip(actuators.gas, 0., 1.)
-          apply_brake = int(clip(self.brake_last * P.BRAKE_MAX, 0, P.BRAKE_MAX - 1))
-          pump_on, self.last_pump_ts = brake_pump_hysteresis(apply_brake, self.apply_brake_last, self.last_pump_ts, ts)
-          can_sends.append(hondacan.create_brake_command(self.packer, apply_brake, pump_on,
-            pcm_override, pcm_cancel_cmd, hud.fcw, idx, CS.CP.carFingerprint, CS.stock_brake))
-          self.apply_brake_last = apply_brake
+          if CS.accEnabled:
+            apply_gas = clip(actuators.gas, 0., 1.)
+            apply_brake = int(clip(self.brake_last * P.BRAKE_MAX, 0, P.BRAKE_MAX - 1))
+            pump_on, self.last_pump_ts = brake_pump_hysteresis(apply_brake, self.apply_brake_last, self.last_pump_ts, ts)
+            can_sends.append(hondacan.create_brake_command(self.packer, apply_brake, pump_on,
+              pcm_override, pcm_cancel_cmd, hud.fcw, idx, CS.CP.carFingerprint, CS.stock_brake))
+            self.apply_brake_last = apply_brake
 
-          if CS.CP.enableGasInterceptor:
-            # send exactly zero if apply_gas is zero. Interceptor will send the max between read value and apply_gas.
-            # This prevents unexpected pedal range rescaling
-            can_sends.append(create_gas_command(self.packer, apply_gas, idx))
+            if CS.CP.enableGasInterceptor:
+              # send exactly zero if apply_gas is zero. Interceptor will send the max between read value and apply_gas.
+              # This prevents unexpected pedal range rescaling
+              can_sends.append(create_gas_command(self.packer, apply_gas, idx))
 
     return can_sends

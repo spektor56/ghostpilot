@@ -457,6 +457,7 @@ class CarInterface(CarInterfaceBase):
     ret.accOn = self.CS.accOn
     ret.leftBlinkerOn = self.CS.leftBlinkerOn
     ret.rightBlinkerOn = self.CS.rightBlinkerOn
+    ret.accEnabled = self.CS.accEnabled
 
     buttonEvents = []
 
@@ -546,12 +547,12 @@ class CarInterface(CarInterfaceBase):
       # do disable on LKAS button if ACC is disabled
       if b.type in [ButtonType.altButton1] and b.pressed:
         if not self.CS.lkasEnabled: #disabled LKAS
-          if self.CS.accOn:
+          if self.CS.accEnabled:
             events.add(EventName.buttonSoftCancel)
           else:
             events.add(EventName.buttonCancel)
         else: #enabled LKAS
-          if not self.CS.accOn:
+          if not self.CS.accEnabled:
             self.last_enable_pressed = cur_time
             enable_pressed = True
 
