@@ -548,6 +548,7 @@ def main():
     ("VisionRadarToggle", "0"),
     ("LaneChangeEnabled", "1"),
     ("IsDriverViewEnabled", "0"),
+    #("HondaStockBehaviour", "1"),
   ]
 
   # set unset params

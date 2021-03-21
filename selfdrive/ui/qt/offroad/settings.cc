@@ -120,7 +120,15 @@ QWidget * toggles_panel() {
                                             "Use features from the open source community that are not maintained or supported by comma.ai and have not been confirmed to meet the standard safety model. These features include community supported cars and community supported hardware. Be extra cautious when using these features",
                                             "../assets/offroad/icon_shell.png"
                                             ));
-
+  /*
+  toggles_list->addWidget(horizontal_line());
+  toggles_list->addWidget(new ParamsToggle("HondaStockBehaviour",
+                                            "Enable Honda stock behaviours",
+                                            "Enabling stock behaviours will enable openpilot work identically to stock honda sensing.  Refer to the Honda user manual for help with the ADAS system.",
+                                            "../assets/offroad/icon_shell.png"
+                                            ));
+  */
+  
   QWidget *widget = new QWidget;
   widget->setLayout(toggles_list);
   return widget;
