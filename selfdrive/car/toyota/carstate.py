@@ -24,10 +24,22 @@ class CarState(CarStateBase):
 
     self.low_speed_lockout = False
     self.acc_type = 1
+    self.steer_not_allowed = False
+    #self.resumeAvailable = False
+    self.lkasEnabled = False
+    self.disengageByBrake = False
+    
+    self.cruise_buttons = 0
+    self.prev_cruise_buttons = 0
+    
+    self.lkas_enabled = None
+    self.prev_lkas_enabled = None
 
   def update(self, cp, cp_cam):
     ret = car.CarState.new_message()
 
+    self.prev_cruise_buttons = self.cruise_buttons
+    self.prev_lkas_enabled = self.lkas_enabled
     ret.doorOpen = any([cp.vl["BODY_CONTROL_STATE"]["DOOR_OPEN_FL"], cp.vl["BODY_CONTROL_STATE"]["DOOR_OPEN_FR"],
                         cp.vl["BODY_CONTROL_STATE"]["DOOR_OPEN_RL"], cp.vl["BODY_CONTROL_STATE"]["DOOR_OPEN_RR"]])
     ret.seatbeltUnlatched = cp.vl["BODY_CONTROL_STATE"]["SEATBELT_DRIVER_UNLATCHED"] != 0
@@ -73,6 +85,12 @@ class CarState(CarStateBase):
 
     ret.steeringRateDeg = cp.vl["STEER_ANGLE_SENSOR"]["STEER_RATE"]
 
+    self.cruise_buttons = cp.vl["PCM_CRUISE"]["CRUISE_STATE"]
+    self.lkas_enabled = cp_cam.vl["LKAS_HUD"]["LKAS_STATUS"] == 0
+
+    if self.prev_lkas_enabled is None:
+      self.prev_lkas_enabled = self.lkas_enabled
+      
     can_gear = int(cp.vl["GEAR_PACKET"]["GEAR"])
     ret.gearShifter = self.parse_gear_shifter(self.shifter_values.get(can_gear, None))
     ret.leftBlinker = cp.vl["BLINKERS_STATE"]["TURN_SIGNALS"] == 1
@@ -119,6 +137,23 @@ class CarState(CarStateBase):
     ret.cruiseState.enabled = bool(cp.vl["PCM_CRUISE"]["CRUISE_ACTIVE"])
     ret.cruiseState.nonAdaptive = cp.vl["PCM_CRUISE"]["CRUISE_STATE"] in (1, 2, 3, 4, 5, 6)
 
+    if ret.cruiseState.available:
+      if not self.prev_lkas_enabled and self.lkas_enabled: #1 == not LKAS button
+        self.lkasEnabled = True
+      elif self.prev_lkas_enabled and not self.lkas_enabled:
+        self.lkasEnabled = False
+    else:
+      # when main off is off
+      self.lkasEnabled = False
+
+    #if ret.cruiseState.enabled == True:
+    #  self.resumeAvailable = True
+
+    if self.lkasEnabled:
+      # 2 is standby, 10 is active. TODO: check that everything else is really a faulty state
+      steer_state = cp.vl["EPS_STATUS"]["LKA_STATE"]    
+      self.steer_not_allowed = steer_state in [9, 25]
+    
     ret.genericToggle = bool(cp.vl["LIGHT_STALK"]["AUTO_HIGH_BEAM"])
     ret.stockAeb = bool(cp_cam.vl["PRE_COLLISION"]["PRECOLLISION_ACTIVE"] and cp_cam.vl["PRE_COLLISION"]["FORCE"] < -1e-5)
 
@@ -224,14 +259,17 @@ class CarState(CarStateBase):
   @staticmethod
   def get_cam_can_parser(CP):
     signals = [
-      ("FORCE", "PRE_COLLISION"),
-      ("PRECOLLISION_ACTIVE", "PRE_COLLISION"),
+      ("FORCE", "PRE_COLLISION", 0),
+      ("PRECOLLISION_ACTIVE", "PRE_COLLISION", 0),
+      # TODO: could be ", 0" at end of each of these
+      ("LKAS_STATUS", "LKAS_HUD", 0),
     ]
 
     # use steering message to check if panda is connected to frc
     checks = [
       ("STEERING_LKA", 42),
       ("PRE_COLLISION", 0), # TODO: figure out why freq is inconsistent
+      ("LKAS_HUD", 1),
     ]
 
     if CP.carFingerprint in (TSS2_CAR - RADAR_ACC_CAR):
