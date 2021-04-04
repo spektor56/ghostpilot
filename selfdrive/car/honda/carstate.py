@@ -173,7 +173,7 @@ class CarState(CarStateBase):
     self.rightBlinkerOn = False
     self.disengageByBrake = False
     self.belowLaneChangeSpeed = True
-    self.automaticLaneChange = False
+    self.automaticLaneChange = True
     self.shifter_values = can_define.dv["GEARBOX"]["GEAR_SHIFTER"]
     self.steer_status_values = defaultdict(lambda: "UNKNOWN", can_define.dv["STEER_STATUS"]["STEER_STATUS"])
 
