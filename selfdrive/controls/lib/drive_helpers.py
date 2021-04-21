@@ -7,8 +7,8 @@ from selfdrive.modeld.constants import T_IDXS
 
 # kph
 V_CRUISE_MAX = 135
-V_CRUISE_MIN = 8
-V_CRUISE_DELTA = 8
+V_CRUISE_MIN = 5
+V_CRUISE_DELTA = 5
 V_CRUISE_ENABLE_MIN = 40
 LAT_MPC_N = 16
 LON_MPC_N = 32
@@ -39,17 +39,25 @@ def rate_limit(new_value, last_value, dw_step, up_step):
 def get_steer_max(CP, v_ego):
   return interp(v_ego, CP.steerMaxBP, CP.steerMaxV)
 
-
-def update_v_cruise(v_cruise_kph, buttonEvents, enabled):
-  # handle button presses. TODO: this should be in state_control, but a decelCruise press
-  # would have the effect of both enabling and changing speed is checked after the state transition
-  for b in buttonEvents:
-    if enabled and not b.pressed:
-      if b.type == car.CarState.ButtonEvent.Type.accelCruise:
+def update_v_cruise(v_cruise_kph, buttonEvents, enabled, cur_time, accel_pressed,decel_pressed,accel_pressed_last,decel_pressed_last, fastMode):
+  
+  if enabled:
+    if accel_pressed:
+      if ((cur_time-accel_pressed_last) >= 1 or (fastMode and (cur_time-accel_pressed_last) >= 0.5)):
         v_cruise_kph += V_CRUISE_DELTA - (v_cruise_kph % V_CRUISE_DELTA)
-      elif b.type == car.CarState.ButtonEvent.Type.decelCruise:
+    elif decel_pressed:
+      if ((cur_time-decel_pressed_last) >= 1 or (fastMode and (cur_time-decel_pressed_last) >= 0.5)):
         v_cruise_kph -= V_CRUISE_DELTA - ((V_CRUISE_DELTA - v_cruise_kph) % V_CRUISE_DELTA)
-      v_cruise_kph = clip(v_cruise_kph, V_CRUISE_MIN, V_CRUISE_MAX)
+    else:
+      for b in buttonEvents:
+        if not b.pressed:
+          if b.type == car.CarState.ButtonEvent.Type.accelCruise:
+            if (not fastMode):
+              v_cruise_kph += 1
+          elif b.type == car.CarState.ButtonEvent.Type.decelCruise:
+            if (not fastMode):
+              v_cruise_kph -= 1
+    v_cruise_kph = clip(v_cruise_kph, V_CRUISE_MIN, V_CRUISE_MAX) 
 
   return v_cruise_kph
 
