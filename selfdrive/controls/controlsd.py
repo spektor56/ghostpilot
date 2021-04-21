@@ -52,6 +52,12 @@ class Controls:
   def __init__(self, sm=None, pm=None, can_sock=None):
     config_realtime_process(4 if TICI else 3, Priority.CTRL_HIGH)
 
+    self.accel_pressed = False
+    self.decel_pressed = False
+    self.accel_pressed_last = 0.
+    self.decel_pressed_last = 0.
+    self.fastMode = False
+    
     # Setup sockets
     self.pm = pm
     if self.pm is None:
@@ -138,6 +144,7 @@ class Controls:
     self.soft_disable_timer = 0
     self.v_cruise_kph = 255
     self.v_cruise_kph_last = 0
+    self.cruiseState_enabled_last = False
     self.mismatch_counter = 0
     self.can_error_counter = 0
     self.last_blinker_frame = 0
@@ -363,9 +370,34 @@ class Controls:
 
     self.v_cruise_kph_last = self.v_cruise_kph
 
+    cur_time = self.sm.frame * DT_CTRL
+
     # if stock cruise is completely disabled, then we can use our own set speed logic
     if not self.CP.pcmCruise:
-      self.v_cruise_kph = update_v_cruise(self.v_cruise_kph, CS.buttonEvents, self.enabled)
+      for b in CS.buttonEvents:
+        if b.pressed:
+          if b.type == car.CarState.ButtonEvent.Type.accelCruise:
+            self.accel_pressed = True
+            self.accel_pressed_last = cur_time
+          elif b.type == car.CarState.ButtonEvent.Type.decelCruise:
+            self.decel_pressed = True
+            self.decel_pressed_last = cur_time
+        else:
+          if b.type == car.CarState.ButtonEvent.Type.accelCruise:
+            self.accel_pressed = False
+          elif b.type == car.CarState.ButtonEvent.Type.decelCruise:
+            self.decel_pressed = False
+
+      self.v_cruise_kph = update_v_cruise(self.v_cruise_kph if self.is_metric else int(round((float(self.v_cruise_kph) * 0.6233 + 0.0995))), CS.buttonEvents, self.enabled and CS.cruiseState.enabled, cur_time, self.accel_pressed,self.decel_pressed, self.accel_pressed_last,self.decel_pressed_last,self.fastMode)
+      self.v_cruise_kph = self.v_cruise_kph if self.is_metric else int(round((float(round(self.v_cruise_kph))-0.0995)/0.6233))
+
+      if(self.accel_pressed or self.decel_pressed):
+        if self.v_cruise_kph_last != self.v_cruise_kph:
+          self.accel_pressed_last = cur_time
+          self.decel_pressed_last = cur_time
+          self.fastMode = True
+      else:
+        self.fastMode = False          
     elif self.CP.pcmCruise and CS.cruiseState.enabled:
       self.v_cruise_kph = CS.cruiseState.speed * CV.MS_TO_KPH
 
@@ -425,7 +457,17 @@ class Controls:
           else:
             self.state = State.enabled
           self.current_alert_types.append(ET.ENABLE)
-          self.v_cruise_kph = initialize_v_cruise(CS.vEgo, CS.buttonEvents, self.v_cruise_kph_last)
+          if not self.CP.pcmCruise:
+            if CS.cruiseState.enabled:
+              self.v_cruise_kph = initialize_v_cruise(CS.vEgo, CS.buttonEvents, self.v_cruise_kph_last)
+          else:
+            self.v_cruise_kph = initialize_v_cruise(CS.vEgo, CS.buttonEvents, self.v_cruise_kph_last)
+
+    if not self.CP.pcmCruise:
+      if CS.cruiseState.enabled and not self.cruiseState_enabled_last:
+        self.v_cruise_kph = initialize_v_cruise(CS.vEgo, CS.buttonEvents, self.v_cruise_kph_last)
+
+      self.cruiseState_enabled_last = CS.cruiseState.enabled
 
     # Check if actuators are enabled
     self.active = self.state == State.enabled or self.state == State.softDisabling
@@ -534,7 +576,7 @@ class Controls:
     CC.cruiseControl.accelOverride = float(self.CI.calc_accel_override(CS.aEgo, self.a_target,
                                                                        CS.vEgo, self.v_target))
 
-    CC.hudControl.setSpeed = float(self.v_cruise_kph * CV.KPH_TO_MS)
+    CC.hudControl.setSpeed = float(self.v_cruise_kph) * CV.KPH_TO_MS
     CC.hudControl.speedVisible = self.enabled
     CC.hudControl.lanesVisible = self.enabled
     CC.hudControl.leadVisible = self.sm['longitudinalPlan'].hasLead
