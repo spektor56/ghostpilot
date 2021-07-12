@@ -1,7 +1,8 @@
 from cereal import car
 from common.numpy_fast import clip
+from common.realtime import DT_CTRL
 from selfdrive.car import apply_toyota_steer_torque_limits, create_gas_command, make_can_msg
-from selfdrive.car.toyota.toyotacan import create_steer_command, create_ui_command, \
+from selfdrive.car.toyota.toyotacan import create_steer_command, create_ui_command, create_ui_command_off, \
                                            create_accel_command, create_acc_cancel_command, \
                                            create_fcw_command, create_lta_steer_command
 from selfdrive.car.toyota.values import Ecu, CAR, STATIC_MSGS, NO_STOP_TIMER_CAR, TSS2_CAR, \
@@ -35,6 +36,7 @@ class CarController():
     self.standstill_req = False
     self.steer_rate_limited = False
     self.use_interceptor = False
+    self.signal_last = 0.
 
     self.fake_ecus = set()
     if CP.enableCamera:
@@ -53,6 +55,8 @@ class CarController():
     interceptor_gas_cmd = 0.
     pcm_accel_cmd = actuators.gas - actuators.brake
 
+    #not CS.out.cruiseState.enabled
+
     if CS.CP.enableGasInterceptor:
       # handle hysteresis when around the minimum acc speed
       if CS.out.vEgo < MIN_ACC_SPEED:
@@ -60,7 +64,7 @@ class CarController():
       elif CS.out.vEgo > MIN_ACC_SPEED + PEDAL_HYST_GAP:
         self.use_interceptor = False
 
-      if self.use_interceptor and enabled:
+      if self.use_interceptor and enabled and CS.out.cruiseState.enabled:
         # only send negative accel when using interceptor. gas handles acceleration
         # +0.06 offset to reduce ABS pump usage when OP is engaged
         interceptor_gas_cmd = clip(actuators.gas, 0., 1.)
@@ -74,16 +78,20 @@ class CarController():
     apply_steer = apply_toyota_steer_torque_limits(new_steer, self.last_steer, CS.out.steeringTorqueEps, CarControllerParams)
     self.steer_rate_limited = new_steer != apply_steer
 
-    # Cut steering while we're in a known fault state (2s)
-    if not enabled or CS.steer_state in [9, 25]:
+    cur_time = frame * DT_CTRL
+    if (CS.leftBlinkerOn or CS.rightBlinkerOn):
+      self.signal_last = cur_time
+
+    # Cut steering while we're in a known fault state (2s)    
+    if enabled and not CS.steer_not_allowed and CS.lkasEnabled and ((CS.automaticLaneChange and not CS.belowLaneChangeSpeed) or ((not ((cur_time - self.signal_last) < 1) or not CS.belowLaneChangeSpeed) and not (CS.leftBlinkerOn or CS.rightBlinkerOn))):
+      apply_steer_req = 1
+    else:
       apply_steer = 0
       apply_steer_req = 0
-    else:
-      apply_steer_req = 1
 
-    if not enabled and CS.pcm_acc_status:
+    #if not enabled and CS.pcm_acc_status:
       # send pcm acc cancel cmd if drive is disabled but pcm is still on, or if the system can't be activated
-      pcm_cancel_cmd = 1
+      #pcm_cancel_cmd = 1
 
     # on entering standstill, send standstill request
     if CS.out.standstill and not self.last_standstill and CS.CP.carFingerprint not in NO_STOP_TIMER_CAR:
@@ -147,7 +155,10 @@ class CarController():
       send_ui = True
 
     if (frame % 100 == 0 or send_ui) and Ecu.fwdCamera in self.fake_ecus:
-      can_sends.append(create_ui_command(self.packer, steer_alert, pcm_cancel_cmd, left_line, right_line, left_lane_depart, right_lane_depart))
+      if(CS.lkasEnabled):
+        can_sends.append(create_ui_command(self.packer, steer_alert, pcm_cancel_cmd, left_line, right_line, left_lane_depart, right_lane_depart, CS.lkasEnabled and not apply_steer_req))
+      else:
+        can_sends.append(create_ui_command_off(self.packer))
 
     if frame % 100 == 0 and Ecu.dsu in self.fake_ecus:
       can_sends.append(create_fcw_command(self.packer, fcw_alert))
