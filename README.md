@@ -35,7 +35,7 @@ The purpose of this fork is to make the transition from Honda Safety Sense to op
 
 Installation Instructions
 ------
-Install openpilot on a supported device by entering https://installer.comma.ai/spektor56/0.8.12-devel-honda or https://smiskol.com/fork/spektor56 during the installer setup.
+Install openpilot on a supported device by entering https://installer.comma.ai/spektor56/0.8.12-devel-toyota or https://smiskol.com/fork/spektor56/0.8.12-devel-toyota during the installer setup.
 
 Donate
 ------

@@ -18,6 +18,16 @@ class CarControllerParams:
   STEER_DELTA_DOWN = 25     # always lower than 45 otherwise the Rav4 faults (Prius seems ok with 50)
   STEER_ERROR_MAX = 350     # max delta between torque cmd and torque motor
 
+# Car button codes
+class CruiseButtons:
+  ACCEL_ACC = 9
+  DECEL_ACC = 10
+  SET_ACC = 8
+  ACCEL_CC = 6
+  DECEL_CC = 5
+  SET_CC = 1 
+  CANCEL = 0
+
 class CAR:
   # Toyota
   ALPHARD_TSS2 = "TOYOTA ALPHARD 2020"
