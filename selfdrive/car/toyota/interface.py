@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 from cereal import car
+from common.realtime import DT_CTRL
+from selfdrive.controls.lib.events import ET
 from selfdrive.config import Conversions as CV
-from selfdrive.car.toyota.values import Ecu, CAR, TSS2_CAR, NO_DSU_CAR, MIN_ACC_SPEED, PEDAL_HYST_GAP, CarControllerParams
+from selfdrive.car.toyota.values import CruiseButtons, Ecu, CAR, TSS2_CAR, NO_DSU_CAR, MIN_ACC_SPEED, PEDAL_HYST_GAP, CarControllerParams
 from selfdrive.car import STD_CARGO_KG, scale_rot_inertia, scale_tire_stiffness, gen_empty_fingerprint
 from selfdrive.car.interfaces import CarInterfaceBase
 
 EventName = car.CarEvent.EventName
-
+ButtonType = car.CarState.ButtonEvent.Type
 
 class CarInterface(CarInterfaceBase):
+  def __init__(self, CP, CarController, CarState):
+    super().__init__(CP, CarController, CarState)
+
+    self.last_enable_pressed = 0
+    self.last_enable_sent = 0
+
   @staticmethod
   def compute_gb(accel, speed):
     return float(accel) / CarControllerParams.ACCEL_SCALE
@@ -356,19 +364,132 @@ class CarInterface(CarInterfaceBase):
     ret.canValid = self.cp.can_valid and self.cp_cam.can_valid
     ret.steeringRateLimited = self.CC.steer_rate_limited if self.CC is not None else False
 
-    # events
-    events = self.create_common_events(ret)
+    ret.lkasEnabled = self.CS.lkasEnabled
+    ret.accEnabled = self.CS.accEnabled
+    ret.leftBlinkerOn = self.CS.leftBlinkerOn
+    ret.rightBlinkerOn = self.CS.rightBlinkerOn
+    ret.automaticLaneChange = self.CS.automaticLaneChange
+    ret.belowLaneChangeSpeed = self.CS.belowLaneChangeSpeed
 
-    if self.CS.low_speed_lockout and self.CP.openpilotLongitudinalControl:
-      events.add(EventName.lowSpeedLockout)
-    if ret.vEgo < self.CP.minEnableSpeed and self.CP.openpilotLongitudinalControl:
-      events.add(EventName.belowEngageSpeed)
-      if c.actuators.gas > 0.1:
+    buttonEvents = [] 
+    
+    #SET / CANCEL
+    if ret.cruiseState.enabled and not self.CS.out.cruiseState.enabled:
+      be = car.CarState.ButtonEvent.new_message()
+      be.pressed = False
+      be.type = ButtonType.setCruise
+      buttonEvents.append(be)
+    elif self.CS.out.cruiseState.enabled and not ret.cruiseState.enabled:
+      be = car.CarState.ButtonEvent.new_message()
+      be.pressed = True
+      be.type = ButtonType.cancel
+      buttonEvents.append(be)
+
+    #ACCEL / DECEL
+    if self.CS.cruise_buttons != self.CS.prev_cruise_buttons:
+      be = car.CarState.ButtonEvent.new_message()
+      be.type = ButtonType.unknown
+      if self.CS.cruise_buttons in [CruiseButtons.ACCEL_ACC, CruiseButtons.ACCEL_CC,CruiseButtons.DECEL_ACC, CruiseButtons.DECEL_CC]:
+        be.pressed = True
+        but = self.CS.cruise_buttons
+      else:
+        be.pressed = False
+        but = self.CS.prev_cruise_buttons
+      if but in [CruiseButtons.ACCEL_ACC, CruiseButtons.ACCEL_CC]:
+        be.type = ButtonType.accelCruise
+      elif but in [CruiseButtons.DECEL_ACC, CruiseButtons.DECEL_CC]:
+        be.type = ButtonType.decelCruise
+      buttonEvents.append(be)
+
+    #LKAS BUTTON
+    if self.CS.out.lkasEnabled != self.CS.lkasEnabled:
+      be = car.CarState.ButtonEvent.new_message()
+      be.pressed = True
+      be.type = ButtonType.altButton1
+      buttonEvents.append(be)
+
+    ret.buttonEvents = buttonEvents
+
+    extraGears = []
+    if not (self.CS.CP.openpilotLongitudinalControl or self.CS.CP.enableGasInterceptor):
+      extraGears = [car.CarState.GearShifter.sport, car.CarState.GearShifter.low]
+
+    # events
+    events = self.create_common_events(ret, extra_gears=extraGears, pcm_enable=False)
+
+
+    #if self.CS.low_speed_lockout and self.CP.openpilotLongitudinalControl:
+      #events.add(EventName.lowSpeedLockout)
+    #if ret.vEgo < self.CP.minEnableSpeed and self.CP.openpilotLongitudinalControl:
+      #events.add(EventName.belowEngageSpeed)
+      #if c.actuators.gas > 0.1:
         # some margin on the actuator to not false trigger cancellation while stopping
-        events.add(EventName.speedTooLow)
-      if ret.vEgo < 0.001:
+        #events.add(EventName.speedTooLow)
+      #if ret.vEgo < 0.001:
         # while in standstill, send a user alert
-        events.add(EventName.manualRestart)
+        #events.add(EventName.manualRestart)
+
+    self.CS.disengageByBrake = self.CS.disengageByBrake or ret.disengageByBrake
+
+    cur_time = self.frame * DT_CTRL
+    enable_pressed = False
+    enable_from_brake = False
+
+    if self.CS.disengageByBrake and not ret.brakePressed and self.CS.lkasEnabled:
+      self.last_enable_pressed = cur_time
+      enable_pressed = True
+      enable_from_brake = True
+
+    if not ret.brakePressed:
+      self.CS.disengageByBrake = False
+      ret.disengageByBrake = False
+
+    # handle button presses
+    for b in ret.buttonEvents:
+
+      # do enable on both accel and decel buttons
+      if b.type in [ButtonType.accelCruise, ButtonType.decelCruise, ButtonType.setCruise] and not b.pressed:
+        self.last_enable_pressed = cur_time
+        enable_pressed = True
+
+      # do disable on LKAS button if ACC is disabled
+      if b.type in [ButtonType.altButton1] and b.pressed:
+        if not self.CS.lkasEnabled: #disabled LKAS
+          if not ret.cruiseState.enabled:
+            events.add(EventName.buttonCancel)
+          else:
+            events.add(EventName.manualSteeringRequired)
+        else: #enabled LKAS
+          if not ret.cruiseState.enabled:
+            self.last_enable_pressed = cur_time
+            enable_pressed = True
+
+      # do disable on button down
+      if b.type == ButtonType.cancel and b.pressed:
+        if not self.CS.lkasEnabled:
+          events.add(EventName.buttonCancel)
+        else:
+          events.add(EventName.manualLongitudinalRequired)
+
+    if self.CP.pcmCruise:
+      # KEEP THIS EVENT LAST! send enable event if button is pressed and there are
+      # NO_ENTRY events, so controlsd will display alerts. Also not send enable events
+      # too close in time, so a no_entry will not be followed by another one.
+      # TODO: button press should be the only thing that triggers enable
+      if ((cur_time - self.last_enable_pressed) < 0.2 and
+          (cur_time - self.last_enable_sent) > 0.2 and
+          (ret.cruiseState.enabled or self.CS.lkasEnabled)) or \
+         (enable_pressed and events.any(ET.NO_ENTRY)):
+        if enable_from_brake:
+          events.add(EventName.silentButtonEnable)
+        else:
+          events.add(EventName.buttonEnable)
+        self.last_enable_sent = cur_time
+    elif enable_pressed:
+      if enable_from_brake:
+        events.add(EventName.silentButtonEnable)
+      else:
+        events.add(EventName.buttonEnable)
 
     ret.events = events.to_msg()
 
