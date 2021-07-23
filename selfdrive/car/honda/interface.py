@@ -147,7 +147,7 @@ class CarInterface(CarInterfaceBase):
       ret.enableGasInterceptor = 0x201 in fingerprint[0]
       ret.openpilotLongitudinalControl = True
 
-      ret.pcmCruise = not ret.enableGasInterceptor
+      ret.pcmCruise = True
       ret.communityFeature = ret.enableGasInterceptor
 
     if candidate == CAR.CRV_5G:
