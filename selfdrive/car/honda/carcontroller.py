@@ -168,18 +168,19 @@ class CarController():
         idx = frame // 2
         ts = frame * DT_CTRL
         if CS.CP.carFingerprint in HONDA_BOSCH:
-          accel = actuators.gas - actuators.brake
+          if CS.out.cruiseState.enabled:
+            accel = actuators.gas - actuators.brake
 
-          # TODO: pass in LoC.long_control_state and use that to decide starting/stoppping
-          stopping = accel < 0 and CS.out.vEgo < 0.3
-          starting = accel > 0 and CS.out.vEgo < 0.3
+            # TODO: pass in LoC.long_control_state and use that to decide starting/stoppping
+            stopping = accel < 0 and CS.out.vEgo < 0.3
+            starting = accel > 0 and CS.out.vEgo < 0.3
 
-          # Prevent rolling backwards
-          accel = -1.0 if stopping else accel
+            # Prevent rolling backwards
+            accel = -1.0 if stopping else accel
 
-          apply_accel = interp(accel, P.BOSCH_ACCEL_LOOKUP_BP, P.BOSCH_ACCEL_LOOKUP_V)
-          apply_gas = interp(accel, P.BOSCH_GAS_LOOKUP_BP, P.BOSCH_GAS_LOOKUP_V)
-          can_sends.extend(hondacan.create_acc_commands(self.packer, enabled, apply_accel, apply_gas, idx, stopping, starting, CS.CP.carFingerprint))
+            apply_accel = interp(accel, P.BOSCH_ACCEL_LOOKUP_BP, P.BOSCH_ACCEL_LOOKUP_V)
+            apply_gas = interp(accel, P.BOSCH_GAS_LOOKUP_BP, P.BOSCH_GAS_LOOKUP_V)
+            can_sends.extend(hondacan.create_acc_commands(self.packer, enabled, apply_accel, apply_gas, idx, stopping, starting, CS.CP.carFingerprint))
 
         else:
           apply_gas = clip(actuators.gas, 0., 1.)
