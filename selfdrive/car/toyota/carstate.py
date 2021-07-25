@@ -133,14 +133,6 @@ class CarState(CarStateBase):
     ret.cruiseState.nonAdaptive = cp.vl["PCM_CRUISE"]["CRUISE_STATE"] in [1, 2, 3, 4, 5, 6]
 
     if ret.cruiseState.available:
-      #if self.CP.enableGasInterceptor:
-        #if self.prev_cruise_buttons == 10: #set
-          #if self.cruise_buttons != 10:            
-            #self.accEnabled = True
-        #elif self.prev_cruise_buttons == 9 and self.resumeAvailable == True: #resume
-          #if self.cruise_buttons != 9:
-            #self.accEnabled = True
-
       if not self.prev_lkas_enabled and self.lkas_enabled: #1 == not LKAS button
         self.lkasEnabled = True
       elif self.prev_lkas_enabled and not self.lkas_enabled:
@@ -148,14 +140,6 @@ class CarState(CarStateBase):
     else:
       self.lkasEnabled = False
       self.accEnabled = False
-
-    #if self.CP.enableGasInterceptor:
-      #if not self.prev_cancel_request: #cancel
-        #if self.prev_cancel_request == 0:
-          #self.accEnabled = False   
-      #if ret.brakePressed:
-        #self.accEnabled = False
-      #ret.cruiseState.enabled = self.accEnabled
 
     if ret.cruiseState.enabled == True:
       self.resumeAvailable = True

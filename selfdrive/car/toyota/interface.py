@@ -14,9 +14,6 @@ class CarInterface(CarInterfaceBase):
   def __init__(self, CP, CarController, CarState):
     super().__init__(CP, CarController, CarState)
 
-    self.last_enable_pressed = 0
-    self.last_enable_sent = 0
-
   @staticmethod
   def compute_gb(accel, speed):
     return float(accel) / CarControllerParams.ACCEL_SCALE
@@ -417,7 +414,6 @@ class CarInterface(CarInterfaceBase):
     # events
     events = self.create_common_events(ret, extra_gears=extraGears, pcm_enable=False)
 
-
     #if self.CS.low_speed_lockout and self.CP.openpilotLongitudinalControl:
       #events.add(EventName.lowSpeedLockout)
     #if ret.vEgo < self.CP.minEnableSpeed and self.CP.openpilotLongitudinalControl:
@@ -431,12 +427,10 @@ class CarInterface(CarInterfaceBase):
 
     self.CS.disengageByBrake = self.CS.disengageByBrake or ret.disengageByBrake
 
-    cur_time = self.frame * DT_CTRL
     enable_pressed = False
     enable_from_brake = False
 
     if self.CS.disengageByBrake and not ret.brakePressed and self.CS.lkasEnabled:
-      self.last_enable_pressed = cur_time
       enable_pressed = True
       enable_from_brake = True
 
@@ -448,8 +442,7 @@ class CarInterface(CarInterfaceBase):
     for b in ret.buttonEvents:
 
       # do enable on both accel and decel buttons
-      if b.type in [ButtonType.accelCruise, ButtonType.decelCruise, ButtonType.setCruise] and not b.pressed:
-        self.last_enable_pressed = cur_time
+      if b.type in [ButtonType.setCruise] and not b.pressed:
         enable_pressed = True
 
       # do disable on LKAS button if ACC is disabled
@@ -461,7 +454,6 @@ class CarInterface(CarInterfaceBase):
             events.add(EventName.manualSteeringRequired)
         else: #enabled LKAS
           if not ret.cruiseState.enabled:
-            self.last_enable_pressed = cur_time
             enable_pressed = True
 
       # do disable on button down
@@ -471,21 +463,7 @@ class CarInterface(CarInterfaceBase):
         else:
           events.add(EventName.manualLongitudinalRequired)
 
-    if self.CP.pcmCruise:
-      # KEEP THIS EVENT LAST! send enable event if button is pressed and there are
-      # NO_ENTRY events, so controlsd will display alerts. Also not send enable events
-      # too close in time, so a no_entry will not be followed by another one.
-      # TODO: button press should be the only thing that triggers enable
-      if ((cur_time - self.last_enable_pressed) < 0.2 and
-          (cur_time - self.last_enable_sent) > 0.2 and
-          (ret.cruiseState.enabled or self.CS.lkasEnabled)) or \
-         (enable_pressed and events.any(ET.NO_ENTRY)):
-        if enable_from_brake:
-          events.add(EventName.silentButtonEnable)
-        else:
-          events.add(EventName.buttonEnable)
-        self.last_enable_sent = cur_time
-    elif enable_pressed:
+    if (ret.cruiseState.enabled or self.CS.lkasEnabled) and enable_pressed:
       if enable_from_brake:
         events.add(EventName.silentButtonEnable)
       else:
