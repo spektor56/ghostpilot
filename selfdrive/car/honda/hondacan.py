@@ -171,6 +171,7 @@ def create_ui_commands(packer, pcm_speed, hud, car_fingerprint, is_metric, idx, 
     'SET_ME_X41': 0x41,
     'STEERING_REQUIRED': hud.steer_required,
     'SOLID_LANES': hud.lanes,
+    'DASHED_LANES': hud.dashed_lanes,
     'BEEP': 0,
   }
   if car_fingerprint not in HONDA_BOSCH_EXT:

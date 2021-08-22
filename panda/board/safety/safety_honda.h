@@ -105,8 +105,10 @@ static int honda_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
     // 0x1A6 for the ILX, 0x296 for the Civic Touring
     if ((addr == 0x1A6) || (addr == 0x296)) {
       int button = (GET_BYTE(to_push, 0) & 0xE0) >> 5;
+      int button2 = (GET_BYTE(to_push, 0) & 0x0C) >> 2;
       switch (button) {
-        case 2:  // cancel
+        case 1:  // main
+          disengageFromBrakes = false;
           controls_allowed = 0;
           break;
         case 3:  // set
@@ -114,6 +116,14 @@ static int honda_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
           controls_allowed = 1;
           break;
         default:
+          switch(button2)
+          {
+            case 1: //lkas_button
+              controls_allowed = 1;
+              break;
+            default:
+              break;
+          }
           break; // any other button is irrelevant
       }
     }

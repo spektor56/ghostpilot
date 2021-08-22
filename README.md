@@ -89,6 +89,27 @@ Supported Cars
 
 | Make      | Model (US Market Reference)   | Supported Package | ACC              | No ACC accel below | No ALC below      |
 | ----------| ------------------------------| ------------------| -----------------| -------------------| ------------------|
+| Acura     | ILX 2016-19                   | AcuraWatch Plus   | openpilot        | 25mph<sup>1</sup>  | 25mph             |
+| Acura     | RDX 2016-18                   | AcuraWatch Plus   | openpilot        | 25mph<sup>1</sup>  | 12mph             |
+| Acura     | RDX 2019-21                   | All               | Stock            | 0mph               | 3mph              |
+| Honda     | Accord 2018-21                | All               | Stock            | 0mph               | 3mph              |
+| Honda     | Accord Hybrid 2018-21         | All               | Stock            | 0mph               | 3mph              |
+| Honda     | Civic Hatchback 2017-21       | Honda Sensing     | Stock            | 0mph               | 12mph             |
+| Honda     | Civic Coupe 2016-18           | Honda Sensing     | openpilot        | 0mph               | 12mph             |
+| Honda     | Civic Coupe 2019-20           | All               | Stock            | 0mph               | 2mph<sup>2</sup>  |
+| Honda     | Civic Sedan 2016-18           | Honda Sensing     | openpilot        | 0mph               | 12mph             |
+| Honda     | Civic Sedan 2019-20           | All               | Stock            | 0mph               | 2mph<sup>2</sup>  |
+| Honda     | CR-V 2015-16                  | Touring           | openpilot        | 25mph<sup>1</sup>  | 12mph             |
+| Honda     | CR-V 2017-21                  | Honda Sensing     | Stock            | 0mph               | 12mph             |
+| Honda     | CR-V Hybrid 2017-2019         | Honda Sensing     | Stock            | 0mph               | 12mph             |
+| Honda     | Fit 2018-19                   | Honda Sensing     | openpilot        | 25mph<sup>1</sup>  | 12mph             |
+| Honda     | HR-V 2019-20                  | Honda Sensing     | openpilot        | 25mph<sup>1</sup>  | 12mph             |
+| Honda     | Insight 2019-21               | All               | Stock            | 0mph               | 3mph              |
+| Honda     | Inspire 2018                  | All               | Stock            | 0mph               | 3mph              |
+| Honda     | Odyssey 2018-20               | Honda Sensing     | openpilot        | 25mph<sup>1</sup>  | 0mph              |
+| Honda     | Passport 2019                 | All               | openpilot        | 25mph<sup>1</sup>  | 12mph             |
+| Honda     | Pilot 2016-19                 | Honda Sensing     | openpilot        | 25mph<sup>1</sup>  | 12mph             |
+| Honda     | Ridgeline 2017-21             | Honda Sensing     | openpilot        | 25mph<sup>1</sup>  | 12mph             |
 
 <sup>1</sup>[Comma Pedal](https://github.com/commaai/openpilot/wiki/comma-pedal) is used to provide stop-and-go capability to some of the openpilot-supported cars that don't currently support stop-and-go. ***NOTE: The Comma Pedal is not officially supported by [comma](https://comma.ai).*** <br />
 <sup>2</sup>2019 Honda Civic 1.6L Diesel Sedan does not have ALC below 12mph. <br />
