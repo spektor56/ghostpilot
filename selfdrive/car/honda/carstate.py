@@ -371,12 +371,19 @@ class CarState(CarStateBase):
       self.lkasEnabled = False
       self.accEnabled = False
 
-    if self.CP.enableGasInterceptor:
+    if self.CP.enableGasInterceptor or (self.CP.pcmCruise and self.CP.minEnableSpeed > 0):
       if self.prev_cruise_buttons != 2: #cancel
         if self.cruise_buttons == 2:
           self.accEnabled = False   
       if ret.brakePressed:
         self.accEnabled = False
+
+    if self.CP.pcmCruise and self.CP.minEnableSpeed > 0:
+      if ret.gasPressed and not ret.cruiseState.enabled:
+        self.accEnabled = False
+      self.accEnabled = ret.cruiseState.enabled or self.accEnabled
+
+    if self.CP.enableGasInterceptor:
       ret.cruiseState.enabled = self.accEnabled
 
     if ret.cruiseState.enabled == True:
