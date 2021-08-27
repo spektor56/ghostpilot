@@ -3,7 +3,7 @@ from cereal import car
 from panda import Panda
 from common.numpy_fast import interp
 from common.params import Params
-from selfdrive.car.honda.values import CarControllerParams, CruiseButtons, CruiseSetting, CAR, HONDA_BOSCH, HONDA_BOSCH_ALT_BRAKE_SIGNAL
+from selfdrive.car.honda.values import CarControllerParams, CruiseButtons, CruiseSetting, CAR, HONDA_BOSCH, HONDA_BOSCH_ALT_BRAKE_SIGNAL, OLD_NIDEC_LONG_CONTROL
 from common.realtime import DT_CTRL
 from selfdrive.controls.lib.events import ET
 from selfdrive.car.honda.hondacan import disable_radar
@@ -323,6 +323,9 @@ class CarInterface(CarInterfaceBase):
 
     if ret.openpilotLongitudinalControl and candidate in HONDA_BOSCH:
       ret.safetyParam |= Panda.FLAG_HONDA_BOSCH_LONG
+      
+    if ret.openpilotLongitudinalControl and candidate in OLD_NIDEC_LONG_CONTROL:
+      ret.safetyParam |= Panda.FLAG_OLD_NIDEC_LONG_CONTROL
 
     # min speed to enable ACC. if car can do stop and go, then set enabling speed
     # to a negative value, so it won't matter. Otherwise, add 0.5 mph margin to not
