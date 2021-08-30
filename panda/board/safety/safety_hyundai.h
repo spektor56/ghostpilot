@@ -158,6 +158,15 @@ static int hyundai_rx_hook(CANPacket_t *to_push) {
       update_sample(&torque_driver, torque_driver_new);
     }
 
+    if (addr == 913) {
+      bool lkas_enabled = ((GET_BYTES_04(to_push) >> 4) & 0x1) > 0; // LFA on signal
+      if (lkas_enabled && !lkas_enabled_prev)
+      {
+        controls_allowed = 1;
+      }
+      lkas_enabled_prev = lkas_enabled;
+    }
+    
     if (hyundai_longitudinal) {
       // ACC steering wheel buttons
       if (addr == 1265) {
@@ -168,7 +177,6 @@ static int hyundai_rx_hook(CANPacket_t *to_push) {
             controls_allowed = 1;
             break;
           case 4:  // cancel
-            controls_allowed = 0;
             break;
           default:
             break;  // any other button is irrelevant
@@ -182,13 +190,21 @@ static int hyundai_rx_hook(CANPacket_t *to_push) {
         if (cruise_engaged && !cruise_engaged_prev) {
           controls_allowed = 1;
         }
-        if (!cruise_engaged) {
-          controls_allowed = 0;
-        }
+        
         cruise_engaged_prev = cruise_engaged;
       }
     }
 
+    if (addr == 1056) {
+      bool main_on = (GET_BYTES_04(to_push) & 0x1) > 0;
+      if (main_on_prev != main_on)
+      {
+        disengageFromBrakes = false;
+        controls_allowed = 0;
+      }
+      main_on_prev = main_on;
+    }
+    
     // read gas pressed signal
     if ((addr == 881) && hyundai_ev_gas_signal) {
       gas_pressed = (((GET_BYTE(to_push, 4) & 0x7F) << 1) | GET_BYTE(to_push, 3) >> 7) != 0;
@@ -355,6 +371,7 @@ static int hyundai_fwd_hook(int bus_num, CANPacket_t *to_fwd) {
 }
 
 static const addr_checks* hyundai_init(int16_t param) {
+  disengageFromBrakes = false;
   controls_allowed = false;
   relay_malfunction_reset();
 
@@ -375,6 +392,7 @@ static const addr_checks* hyundai_init(int16_t param) {
 }
 
 static const addr_checks* hyundai_legacy_init(int16_t param) {
+  disengageFromBrakes = false;
   controls_allowed = false;
   relay_malfunction_reset();
 
