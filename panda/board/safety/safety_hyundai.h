@@ -132,6 +132,15 @@ static int hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
       update_sample(&torque_driver, torque_driver_new);
     }
 
+    if (addr == 913) {
+      bool lkas_enabled = ((GET_BYTES_04(to_push) >> 4) & 0x1) > 0; // LFA on signal
+      if (lkas_enabled && !lkas_enabled_prev)
+      {
+        controls_allowed = 1;
+      }
+      lkas_enabled_prev = lkas_enabled;
+    }
+
     // enter controls on rising edge of ACC, exit controls on ACC off
     if (addr == 1057) {
       // 2 bits: 13-14
@@ -139,10 +148,18 @@ static int hyundai_rx_hook(CAN_FIFOMailBox_TypeDef *to_push) {
       if (cruise_engaged && !cruise_engaged_prev) {
         controls_allowed = 1;
       }
-      if (!cruise_engaged) {
+      
+      cruise_engaged_prev = cruise_engaged;
+    }
+
+    if (addr == 1056) {
+      bool main_on = (GET_BYTES_04(to_push) & 0x1) > 0;
+      if (main_on_prev != main_on)
+      {
+        disengageFromBrakes = false;
         controls_allowed = 0;
       }
-      cruise_engaged_prev = cruise_engaged;
+      main_on_prev = main_on;
     }
 
     // read gas pressed signal
@@ -261,7 +278,8 @@ static int hyundai_fwd_hook(int bus_num, CAN_FIFOMailBox_TypeDef *to_fwd) {
   return bus_fwd;
 }
 
-static const addr_checks* hyundai_init(int16_t param) {
+static void hyundai_init(int16_t param) {
+  disengageFromBrakes = false;
   controls_allowed = false;
   relay_malfunction_reset();
 
@@ -273,6 +291,7 @@ static const addr_checks* hyundai_init(int16_t param) {
 }
 
 static const addr_checks* hyundai_legacy_init(int16_t param) {
+  disengageFromBrakes = false;
   controls_allowed = false;
   relay_malfunction_reset();
 
