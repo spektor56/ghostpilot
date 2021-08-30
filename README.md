@@ -76,6 +76,7 @@ Running on PC
 ------
 
 All of openpilot's services can run as normal on a PC, even without special hardware or a car. To develop or experiment with openpilot you can run openpilot on recorded or simulated data.
+Install openpilot on a supported device by entering ``https://smiskol.com/fork/spektor56/0.8.10-devel-hyundai`` during the installer setup.
 
 With openpilot's tools you can plot logs, replay drives and watch the full-res camera streams. See [the tools README](tools/README.md) for more information.
 
