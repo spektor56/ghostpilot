@@ -89,6 +89,9 @@ Supported Cars
 
 | Make      | Model (US Market Reference)   | Supported Package | ACC              | No ACC accel below | No ALC below      |
 | ----------| ------------------------------| ------------------| -----------------| -------------------| ------------------|
+| Hyundai   | Sonata 2020-21                | All               | Stock            | 0mph               | 0mph              |
+| Hyundai   | Elantra 2021                  | SCC + LKAS        | Stock            | 0mph               | 0mph              |
+| Hyundai   | Elantra Hybrid 2021           | SCC + LKAS        | Stock            | 0mph               | 0mph              |
 
 <sup>1</sup>[Comma Pedal](https://github.com/commaai/openpilot/wiki/comma-pedal) is used to provide stop-and-go capability to some of the openpilot-supported cars that don't currently support stop-and-go. ***NOTE: The Comma Pedal is not officially supported by [comma](https://comma.ai).*** <br />
 <sup>2</sup>2019 Honda Civic 1.6L Diesel Sedan does not have ALC below 12mph. <br />
@@ -96,7 +99,7 @@ Supported Cars
 Installation Instructions
 ------
 
-Install openpilot on a supported device by entering ``https://smiskol.com/fork/spektor56`` during the installer setup.
+Install openpilot on a supported device by entering ``https://smiskol.com/fork/spektor56/0.8.8-devel-hyundai`` during the installer setup.
 
 Follow these [video instructions](https://youtu.be/lcjqxCymins) to properly mount the device on the windshield. Note: openpilot features an automatic pose calibration routine and openpilot performance should not be affected by small pitch and yaw misalignments caused by imprecise device mounting.
 
