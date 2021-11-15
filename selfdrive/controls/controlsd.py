@@ -337,7 +337,7 @@ class Controls:
     else:
       v_future = 100.0
     if CS.brakePressed and v_future >= self.CP.vEgoStarting \
-      and self.CP.openpilotLongitudinalControl and CS.vEgo < 0.3:
+      and self.CP.openpilotLongitudinalControl and CS.vEgo < 0.3 and CS.cruiseState.enabled:
       self.events.add(EventName.noTarget)
 
   def data_sample(self):
