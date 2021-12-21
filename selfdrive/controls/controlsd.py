@@ -704,6 +704,8 @@ class Controls:
     controlsState.startMonoTime = int(start_time * 1e9)
     controlsState.forceDecel = bool(force_decel)
     controlsState.canErrorCounter = self.can_error_counter
+    controlsState.lkasEnabled = CS.lkasEnabled
+    controlsState.paused = (CS.brakePressed and CS.disengageByBrake) or (self.enabled and CS.lkasEnabled and not(self.active and (not CS.steerWarning) and (not CS.steerError) and (CS.vEgo > self.CP.minSteerSpeed) and CS.lkasEnabled and ((not CS.belowLaneChangeSpeed) or ((not (((self.sm.frame - self.last_blinker_frame) * DT_CTRL) < 1.0))))))
 
     if self.joystick_mode:
       controlsState.lateralControlState.debugState = lac_log

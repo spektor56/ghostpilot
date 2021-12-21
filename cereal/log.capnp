@@ -546,6 +546,8 @@ struct ControlsState @0x97ff69c53601abf1 {
   state @31 :OpenpilotState;
   enabled @19 :Bool;
   active @36 :Bool;
+  paused @60 :Bool;
+  lkasEnabled @61 :Bool;
 
   longControlState @30 :Car.CarControl.Actuators.LongControlState;
   vPid @2 :Float32;

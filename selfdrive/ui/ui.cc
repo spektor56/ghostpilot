@@ -107,6 +107,16 @@ static void update_state(UIState *s) {
   SubMaster &sm = *(s->sm);
   UIScene &scene = s->scene;
 
+  // update engageability and DM icons at 2Hz
+  if (sm.frame % (UI_FREQ / 2) == 0) {
+    auto cs = sm["controlsState"].getControlsState();
+    scene.paused = cs.getPaused();
+    scene.enabled = cs.getEnabled();
+    scene.lkasEnabled = cs.getLkasEnabled();
+  }
+  if (sm.updated("carState")){
+    scene.car_state = sm["carState"].getCarState();
+  }
   if (sm.updated("modelV2")) {
     update_model(s, sm["modelV2"].getModelV2());
   }

@@ -19,6 +19,11 @@ class OnroadHud : public QWidget {
   Q_PROPERTY(bool dmActive MEMBER dmActive NOTIFY valueChanged);
   Q_PROPERTY(bool hideDM MEMBER hideDM NOTIFY valueChanged);
   Q_PROPERTY(int status MEMBER status NOTIFY valueChanged);
+  Q_PROPERTY(bool paused MEMBER paused NOTIFY valueChanged);
+  Q_PROPERTY(bool enabled MEMBER enabled NOTIFY valueChanged);
+  Q_PROPERTY(bool lkasEnabled MEMBER lkasEnabled NOTIFY valueChanged);
+  Q_PROPERTY(bool steeringPressed MEMBER steeringPressed NOTIFY valueChanged);
+  Q_PROPERTY(float steeringTorque MEMBER steeringTorque NOTIFY valueChanged);
 
 public:
   explicit OnroadHud(QWidget *parent);
@@ -41,6 +46,11 @@ private:
   bool dmActive = false;
   bool hideDM = false;
   int status = STATUS_DISENGAGED;
+  bool paused = false;
+  bool enabled = false;
+  bool lkasEnabled = false;
+  bool steeringPressed = false;
+  float steeringTorque = 0.0;
 
 signals:
   void valueChanged();

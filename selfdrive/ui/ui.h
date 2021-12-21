@@ -84,6 +84,7 @@ typedef struct UIScene {
   mat3 view_from_calib;
   bool world_objects_visible;
 
+  cereal::CarState::Reader car_state;
   cereal::PandaState::PandaType pandaType;
 
   // modelV2
@@ -97,10 +98,9 @@ typedef struct UIScene {
   QPointF lead_vertices[2];
 
   float light_sensor, accel_sensor, gyro_sensor;
-  bool started, ignition, is_metric, longitudinal_control, end_to_end;
+  bool started, ignition, is_metric, longitudinal_control, end_to_end, enabled, paused, lkasEnabled;
   uint64_t started_frame;
 } UIScene;
-
 typedef struct UIState {
   int fb_w = 0, fb_h = 0;
 
