@@ -102,6 +102,7 @@ typedef struct {
 void safety_tick(const addr_checks *addr_checks);
 
 // This can be set by the safety hooks
+bool disengageFromBrakes = false;
 bool controls_allowed = false;
 bool relay_malfunction = false;
 bool gas_interceptor_detected = false;
@@ -111,6 +112,8 @@ bool gas_pressed_prev = false;
 bool brake_pressed = false;
 bool brake_pressed_prev = false;
 bool cruise_engaged_prev = false;
+bool main_on_prev = false;
+bool set_me_prev = false;
 float vehicle_speed = 0;
 bool vehicle_moving = false;
 bool acc_main_on = false;  // referred to as "ACC off" in ISO 15622:2018
@@ -144,6 +147,14 @@ struct sample_t angle_meas;         // last 6 steer angles
 #define ALT_EXP_RAISE_LONGITUDINAL_LIMITS_TO_ISO_MAX 8
 
 int alternative_experience = 0;
+// Enable the ability to toggle LKAS and ACC independently of each other. Allows openpilot to be engaged 
+// after pressing the LKAS button and doesn't block openpilot from engaging after pressing the cancel 
+// button.
+#define UNSAFE_SPLIT_LKAS_AND_ACC 16
+
+// If the previous disengagement is from a brake press, allow openpilot to engage after releasing the brake.
+#define UNSAFE_RESUME_LKAS_AFTER_BRAKE 32
+
 
 // time since safety mode has been changed
 uint32_t safety_mode_cnt = 0U;
