@@ -514,7 +514,9 @@ class CarInterface(CarInterfaceBase):
                                hud_v_cruise,
                                c.hudControl.lanesVisible,
                                hud_show_car=c.hudControl.leadVisible,
-                               hud_alert=c.hudControl.visualAlert)
+                               hud_alert=c.hudControl.visualAlert,
+                               hud_lead_distance=c.hudControl.leadDistance,
+                               hud_lead_prob=c.hudControl.leadProb)
 
     self.frame += 1
     return can_sends

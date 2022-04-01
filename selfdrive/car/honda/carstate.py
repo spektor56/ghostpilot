@@ -92,6 +92,7 @@ def get_can_signals(CP, gearbox_msg, main_on_sig_msg):
       signals += [
         ("CRUISE_CONTROL_LABEL", "ACC_HUD", 0),
         ("CRUISE_SPEED", "ACC_HUD", 0),
+        ("HUD_LEAD", "ACC_HUD", 0),
         ("ACCEL_COMMAND", "ACC_CONTROL", 0),
         ("AEB_STATUS", "ACC_CONTROL", 0),
       ]
@@ -211,9 +212,11 @@ class CarState(CarStateBase):
     ret.seatbeltUnlatched = bool(cp.vl["SEATBELT_STATUS"]["SEATBELT_DRIVER_LAMP"] or not cp.vl["SEATBELT_STATUS"]["SEATBELT_DRIVER_LATCHED"])
 
     if not self.CP.openpilotLongitudinalControl:
+      ret.hudLead = int(cp.vl["ACC_HUD"]["HUD_LEAD"])
       self.brake_error = 0
     else:
       self.brake_error = cp.vl["STANDSTILL"]["BRAKE_ERROR_1"] or cp.vl["STANDSTILL"]["BRAKE_ERROR_2"]
+      
     ret.espDisabled = cp.vl["VSA_STATUS"]["ESP_DISABLED"] != 0
 
     ret.wheelSpeeds = self.get_wheel_speeds(

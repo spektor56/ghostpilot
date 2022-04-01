@@ -626,10 +626,18 @@ class Controls:
     if self.joystick_mode and self.sm.rcv_frame['testJoystick'] > 0 and self.sm['testJoystick'].buttons[0]:
       CC.cruiseControl.cancel = True
 
+    model_v2 = self.sm['modelV2']
+
     CC.hudControl.setSpeed = float(self.v_cruise_kph) * CV.KPH_TO_MS
     CC.hudControl.speedVisible = self.enabled
     CC.hudControl.lanesVisible = self.enabled
     CC.hudControl.leadVisible = self.sm['longitudinalPlan'].hasLead
+    if(len(model_v2.leadsV3) > 0):
+      CC.hudControl.leadDistance = float(model_v2.leadsV3[0].x[0])
+      CC.hudControl.leadProb = float(model_v2.leadsV3[0].prob)
+    else:
+      CC.hudControl.leadDistance = -1.
+      CC.hudControl.leadProb = 0.
 
     CC.hudControl.rightLaneVisible = True
     CC.hudControl.leftLaneVisible = True
@@ -638,12 +646,11 @@ class Controls:
     ldw_allowed = self.is_ldw_enabled and CS.vEgo > LDW_MIN_SPEED and not recent_blinker \
                     and not self.active and self.sm['liveCalibration'].calStatus == Calibration.CALIBRATED
 
-    meta = self.sm['modelV2'].meta
-    if len(meta.desirePrediction) and ldw_allowed:
+    if len(model_v2.meta.desirePrediction) and ldw_allowed:
       right_lane_visible = self.sm['lateralPlan'].rProb > 0.5
       left_lane_visible = self.sm['lateralPlan'].lProb > 0.5
-      l_lane_change_prob = meta.desirePrediction[Desire.laneChangeLeft - 1]
-      r_lane_change_prob = meta.desirePrediction[Desire.laneChangeRight - 1]
+      l_lane_change_prob = model_v2.meta.desirePrediction[Desire.laneChangeLeft - 1]
+      r_lane_change_prob = model_v2.meta.desirePrediction[Desire.laneChangeRight - 1]
       l_lane_close = left_lane_visible and (self.sm['modelV2'].laneLines[1].y[0] > -(1.08 + CAMERA_OFFSET))
       r_lane_close = right_lane_visible and (self.sm['modelV2'].laneLines[2].y[0] < (1.08 - CAMERA_OFFSET))
 

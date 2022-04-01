@@ -201,6 +201,7 @@ struct CarState {
   automaticLaneChange @43 :Bool;
   belowLaneChangeSpeed @44 :Bool;
   accEnabled @45 :Bool;
+  hudLead @46 :Float32;
 
   # which packets this state came from
   canMonoTimes @12: List(UInt64);
@@ -350,6 +351,8 @@ struct CarControl {
     leftLaneVisible @7: Bool;
     rightLaneDepart @8: Bool;
     leftLaneDepart @9: Bool;
+    leadDistance @10: Float32;
+    leadProb @11: Float32;
 
     enum VisualAlert {
       # these are the choices from the Honda

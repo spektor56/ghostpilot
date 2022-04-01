@@ -105,11 +105,13 @@ class CarController():
     self.apply_brake_last = 0
     self.last_pump_ts = 0.
     self.packer = CANPacker(dbc_name)
+    self.prev_lead_distance = -1.
+    self.resume_from_standstill = False
 
     self.params = CarControllerParams(CP)
 
   def update(self, enabled, active, CS, frame, actuators, pcm_cancel_cmd,
-             hud_v_cruise, hud_show_lanes, hud_show_car, hud_alert):
+             hud_v_cruise, hud_show_lanes, hud_show_car, hud_alert, hud_lead_distance, hud_lead_prob):
 
     P = self.params
 
@@ -196,12 +198,36 @@ class CarController():
       if (frame % 2) == 0:
         idx = frame // 2
         can_sends.append(hondacan.create_bosch_supplemental_1(self.packer, CS.CP.carFingerprint, idx))
+
+      if not CS.out.cruiseState.standstill:
+        self.resume_from_standstill = False
+        self.prev_lead_distance = -1.
+
       # If using stock ACC, spam cancel command to kill gas when OP disengages.
       if pcm_cancel_cmd:
         can_sends.append(hondacan.spam_buttons_command(self.packer, CruiseButtons.CANCEL, idx, CS.CP.carFingerprint))
       elif CS.out.cruiseState.standstill:
-        can_sends.append(hondacan.spam_buttons_command(self.packer, CruiseButtons.RES_ACCEL, idx, CS.CP.carFingerprint))
+        resume_from_model = False
+        if not self.resume_from_standstill:
+          if CS.out.hudLead != 2:
+            self.resume_from_standstill = True
+          elif hud_lead_distance >= 0 and hud_lead_prob > 0.5:
+            if (self.prev_lead_distance == -1.) or (hud_lead_distance < self.prev_lead_distance):
+              self.prev_lead_distance = hud_lead_distance
 
+            if(hud_lead_distance > (self.prev_lead_distance + 0.75)):
+              resume_from_model = True
+          else:
+            resume_from_model = True
+
+        if self.resume_from_standstill:
+          print(f"Spamming RESUME Press")
+        if resume_from_model:
+          print(f"Resuming from Model")
+
+        if self.resume_from_standstill or resume_from_model:
+          print(f"Spamming RESUME Press")
+          can_sends.append(hondacan.spam_buttons_command(self.packer, CruiseButtons.RES_ACCEL, idx, CS.CP.carFingerprint))
     else:
       # Send gas and brake commands.
       if (frame % 2) == 0:
