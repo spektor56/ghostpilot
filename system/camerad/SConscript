@@ -1,0 +1,34 @@
+Import('env', 'arch', 'cereal', 'messaging', 'common', 'gpucommon', 'visionipc', 'USE_WEBCAM')
+
+libs = ['m', 'pthread', common, 'jpeg', 'OpenCL', 'yuv', cereal, messaging, 'zmq', 'capnp', 'kj', visionipc, gpucommon]
+
+cameras = []
+if arch == "aarch64":
+  libs += ['gsl', 'CB', 'adreno_utils', 'EGL', 'GLESv3', 'cutils', 'ui']
+  cameras = ['cameras/camera_qcom.cc']
+
+  env.Program('camerad', [
+    'main.cc',
+    'cameras/camera_common.cc',
+    'transforms/rgb_to_yuv.cc',
+    'imgproc/utils.cc',
+    cameras,
+  ], LIBS=libs)
+elif arch == "larch64":
+  libs += ['atomic']
+  cameras = ['cameras/camera_qcom2.cc']
+
+  env.Program('camerad', [
+      'main.cc',
+      'cameras/camera_common.cc',
+      'transforms/rgb_to_yuv.cc',
+      'imgproc/utils.cc',
+      cameras,
+    ], LIBS=libs)
+
+if GetOption("test"):
+  env.Program('test/ae_gray_test', [
+      'test/ae_gray_test.cc',
+      'cameras/camera_common.cc',
+      'transforms/rgb_to_yuv.cc',
+    ], LIBS=libs)

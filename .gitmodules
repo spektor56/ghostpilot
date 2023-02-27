@@ -1,0 +1,15 @@
+[submodule "panda"]
+	path = panda
+	url = https://github.com/spektor56/panda.git
+[submodule "opendbc"]
+	path = opendbc
+	url = https://github.com/spektor56/opendbc.git
+[submodule "laika_repo"]
+	path = laika_repo
+	url = https://github.com/spektor56/laika.git
+[submodule "cereal"]
+	path = cereal
+	url = https://github.com/spektor56/cereal.git
+[submodule "rednose_repo"]
+	path = rednose_repo
+	url = ../../commaai/rednose.git
