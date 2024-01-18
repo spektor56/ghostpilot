@@ -3,10 +3,8 @@ from cereal import car
 from panda import Panda
 from openpilot.common.conversions import Conversions as CV
 from openpilot.common.numpy_fast import interp
-from openpilot.selfdrive.car.honda.values import CarControllerParams, CruiseButtons, CruiseSetting, HondaFlags, CAR, HONDA_BOSCH, \
+from openpilot.selfdrive.car.honda.values import CarControllerParams, CruiseButtons, HondaFlags, CAR, HONDA_BOSCH, \
                                                   HONDA_NIDEC_ALT_SCM_MESSAGES, HONDA_BOSCH_ALT_BRAKE_SIGNAL, HONDA_BOSCH_RADARLESS
-from openpilot.common.realtime import DT_CTRL
-from openpilot.selfdrive.controls.lib.events import ET
 from openpilot.selfdrive.car import create_button_events, get_safety_config
 from openpilot.selfdrive.car.interfaces import CarInterfaceBase
 from openpilot.selfdrive.car.disable_ecu import disable_ecu
