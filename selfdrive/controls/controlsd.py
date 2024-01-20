@@ -252,17 +252,7 @@ class Controls:
     if (CS.gasPressed and not self.CS_prev.gasPressed and self.disengage_on_accelerator) or \
       (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) or \
       (CS.regenBraking and (not self.CS_prev.regenBraking or not CS.standstill)):
-      if (CS.lkasEnabled):
-        self.disengageByBrake = True
-      if (CS.cruiseState.enabled):
-        self.events.add(EventName.pedalPressed)
-      else:
-        self.events.add(EventName.silentPedalPressed)
-
-    if (not CS.brakePressed) and (not CS.brakeHoldActive):
-      if self.disengageByBrake and CS.lkasEnabled:
-        self.events.add(EventName.silentButtonEnable)
-      self.disengageByBrake = False
+      self.events.add(EventName.pedalPressed)
 
     if CS.brakePressed and CS.standstill:
       self.events.add(EventName.preEnableStandstill)
