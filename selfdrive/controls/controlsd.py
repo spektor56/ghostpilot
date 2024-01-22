@@ -62,13 +62,6 @@ class Controls:
     # Ensure the current branch is cached, otherwise the first iteration of controlsd lags
     self.branch = get_short_branch("")
 
-    self.accel_pressed = False
-    self.decel_pressed = False
-    self.accel_pressed_last = 0.
-    self.decel_pressed_last = 0.
-    self.fastMode = False
-    self.disengageByBrake = False
-
     # Setup sockets
     self.pm = messaging.PubMaster(['sendcan', 'controlsState', 'carState',
                                    'carControl', 'carEvents', 'carParams'])
@@ -109,9 +102,6 @@ class Controls:
     self.CP.alternativeExperience = 0
     if not self.disengage_on_accelerator:
       self.CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.DISABLE_DISENGAGE_ON_GAS
-
-    self.CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.SPLIT_LKAS_AND_ACC
-    self.CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.RESUME_LKAS_AFTER_BRAKE
 
     # read params
     self.is_metric = self.params.get_bool("IsMetric")
@@ -169,7 +159,6 @@ class Controls:
     self.enabled = False
     self.active = False
     self.soft_disable_timer = 0
-    self.cruiseState_enabled_last = False
     self.mismatch_counter = 0
     self.cruise_mismatch_counter = 0
     self.can_rcv_timeout_counter = 0      # conseuctive timeout count
@@ -253,11 +242,6 @@ class Controls:
       (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) or \
       (CS.regenBraking and (not self.CS_prev.regenBraking or not CS.standstill)):
       self.events.add(EventName.pedalPressed)
-
-    if (not CS.brakePressed) and (not CS.brakeHoldActive):
-      if self.disengageByBrake and CS.lkasEnabled:
-        self.events.add(EventName.silentButtonEnable)
-      self.disengageByBrake = False
 
     if CS.brakePressed and CS.standstill:
       self.events.add(EventName.preEnableStandstill)
@@ -570,8 +554,6 @@ class Controls:
           self.current_alert_types.append(ET.ENABLE)
           self.v_cruise_helper.initialize_v_cruise(CS, self.experimental_mode)
 
-    self.cruiseState_enabled_last = CS.cruiseState.enabled
-
     # Check if openpilot is engaged and actuators are enabled
     self.enabled = self.state in ENABLED_STATES
     self.active = self.state in ACTIVE_STATES
@@ -668,18 +650,14 @@ class Controls:
 
     # Send a "steering required alert" if saturation count has reached the limit
     if lac_log.active and not recent_steer_pressed and not self.CP.notCar:
-      if (self.CP.lateralTuning.which() == 'torque' and
-          not self.joystick_mode and
-          not CS.steeringPressed and
-          CS.lkasEnabled and
-          not (CS.leftBlinker or CS.rightBlinker)):
+      if self.CP.lateralTuning.which() == 'torque' and not self.joystick_mode:
         undershooting = abs(lac_log.desiredLateralAccel) / abs(1e-3 + lac_log.actualLateralAccel) > 1.2
         turning = abs(lac_log.desiredLateralAccel) > 1.0
         good_speed = CS.vEgo > 5
         max_torque = abs(self.last_actuators.steer) > 0.99
         if undershooting and turning and good_speed and max_torque:
           lac_log.active and self.events.add(EventName.steerSaturated)
-      elif lac_log.saturated and not CS.steeringPressed and CS.lkasEnabled and not (CS.leftBlinker or CS.rightBlinker):
+      elif lac_log.saturated:
         dpath_points = lat_plan.dPathPoints
         if len(dpath_points):
           # Check if we deviated from the path
