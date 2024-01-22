@@ -254,6 +254,11 @@ class Controls:
       (CS.regenBraking and (not self.CS_prev.regenBraking or not CS.standstill)):
       self.events.add(EventName.pedalPressed)
 
+    if (not CS.brakePressed) and (not CS.brakeHoldActive):
+      if self.disengageByBrake and CS.lkasEnabled:
+        self.events.add(EventName.silentButtonEnable)
+      self.disengageByBrake = False
+
     if CS.brakePressed and CS.standstill:
       self.events.add(EventName.preEnableStandstill)
 
