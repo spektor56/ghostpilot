@@ -62,6 +62,13 @@ class Controls:
     # Ensure the current branch is cached, otherwise the first iteration of controlsd lags
     self.branch = get_short_branch("")
 
+    self.accel_pressed = False
+    self.decel_pressed = False
+    self.accel_pressed_last = 0.
+    self.decel_pressed_last = 0.
+    self.fastMode = False
+    self.disengageByBrake = False
+
     # Setup sockets
     self.pm = messaging.PubMaster(['sendcan', 'controlsState', 'carState',
                                    'carControl', 'carEvents', 'carParams'])
@@ -165,6 +172,7 @@ class Controls:
     self.enabled = False
     self.active = False
     self.soft_disable_timer = 0
+    self.cruiseState_enabled_last = False
     self.mismatch_counter = 0
     self.cruise_mismatch_counter = 0
     self.can_rcv_timeout_counter = 0      # conseuctive timeout count
@@ -247,7 +255,18 @@ class Controls:
     if (CS.gasPressed and not self.CS_prev.gasPressed and self.disengage_on_accelerator) or \
       (CS.brakePressed and (not self.CS_prev.brakePressed or not CS.standstill)) or \
       (CS.regenBraking and (not self.CS_prev.regenBraking or not CS.standstill)):
-      self.events.add(EventName.pedalPressed)
+      if (CS.lkasEnabled):
+        self.disengageByBrake = True
+      if (not self.split_lkas_and_acc or CS.cruiseState.enabled):
+        self.events.add(EventName.pedalPressed)
+      else:
+        self.events.add(EventName.silentPedalPressed)
+
+    if (not CS.brakePressed) and (not CS.brakeHoldActive):
+      if(self.resume_lkas_after_brake):
+        if self.disengageByBrake and CS.lkasEnabled:
+          self.events.add(EventName.silentButtonEnable)
+      self.disengageByBrake = False
 
     if CS.brakePressed and CS.standstill:
       self.events.add(EventName.preEnableStandstill)
@@ -397,7 +416,7 @@ class Controls:
 
     if not REPLAY:
       # Check for mismatch between openpilot and car's PCM
-      cruise_mismatch = CS.cruiseState.enabled and (not self.enabled or not self.CP.pcmCruise)
+      cruise_mismatch = CS.cruiseState.enabled and (not self.enabled or (not self.CP.pcmCruise and not self.split_lkas_and_acc))
       self.cruise_mismatch_counter = self.cruise_mismatch_counter + 1 if cruise_mismatch else 0
       if self.cruise_mismatch_counter > int(6. / DT_CTRL):
         self.events.add(EventName.cruiseMismatch)
@@ -560,6 +579,8 @@ class Controls:
           self.current_alert_types.append(ET.ENABLE)
           self.v_cruise_helper.initialize_v_cruise(CS, self.experimental_mode)
 
+    self.cruiseState_enabled_last = CS.cruiseState.enabled
+
     # Check if openpilot is engaged and actuators are enabled
     self.enabled = self.state in ENABLED_STATES
     self.active = self.state in ACTIVE_STATES
@@ -590,9 +611,15 @@ class Controls:
 
     # Check which actuators can be enabled
     standstill = CS.vEgo <= max(self.CP.minSteerSpeed, MIN_LATERAL_CONTROL_SPEED) or CS.standstill
-    CC.latActive = self.active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
-                   (not standstill or self.joystick_mode)
-    CC.longActive = self.enabled and not self.events.contains(ET.OVERRIDE_LONGITUDINAL) and self.CP.openpilotLongitudinalControl
+    CC.latActive = (self.active and (not CS.steerFaultTemporary) and (not CS.steerFaultPermanent) and
+                    (not standstill or self.joystick_mode) and (not self.split_lkas_and_acc or
+                    (CS.lkasEnabled and
+                    ((not CS.belowLaneChangeSpeed) or ((not (((self.sm.frame - self.last_blinker_frame) * DT_CTRL) < 1.0)))))))
+    CC.longActive = (self.enabled and
+                     (not self.events.contains(ET.OVERRIDE_LONGITUDINAL)) and
+                     self.CP.openpilotLongitudinalControl and
+                     (not self.split_lkas_and_acc or
+                     ((CS.cruiseState.enabled or (self.CP.pcmCruise and CS.accEnabled and self.CP.minEnableSpeed > 0 and not CS.cruiseState.enabled)))))
 
     actuators = CC.actuators
     actuators.longControlState = self.LoC.long_control_state
@@ -656,14 +683,20 @@ class Controls:
 
     # Send a "steering required alert" if saturation count has reached the limit
     if lac_log.active and not recent_steer_pressed and not self.CP.notCar:
-      if self.CP.lateralTuning.which() == 'torque' and not self.joystick_mode:
+      if (self.CP.lateralTuning.which() == 'torque' and
+          not self.joystick_mode and
+          (not self.split_lkas_and_acc or
+          (not CS.steeringPressed and
+          CS.lkasEnabled and
+          not (CS.leftBlinker or CS.rightBlinker)))):
         undershooting = abs(lac_log.desiredLateralAccel) / abs(1e-3 + lac_log.actualLateralAccel) > 1.2
         turning = abs(lac_log.desiredLateralAccel) > 1.0
         good_speed = CS.vEgo > 5
         max_torque = abs(self.last_actuators.steer) > 0.99
         if undershooting and turning and good_speed and max_torque:
           lac_log.active and self.events.add(EventName.steerSaturated)
-      elif lac_log.saturated:
+      elif lac_log.saturated and (not self.split_lkas_and_acc or
+                                  (not CS.steeringPressed and CS.lkasEnabled and not (CS.leftBlinker or CS.rightBlinker))):
         dpath_points = lat_plan.dPathPoints
         if len(dpath_points):
           # Check if we deviated from the path
@@ -704,7 +737,7 @@ class Controls:
       CC.angularVelocity = angular_rate_value
 
     CC.cruiseControl.override = self.enabled and not CC.longActive and self.CP.openpilotLongitudinalControl
-    CC.cruiseControl.cancel = CS.cruiseState.enabled and (not self.enabled or not self.CP.pcmCruise)
+    CC.cruiseControl.cancel = CS.cruiseState.enabled and (not self.enabled or (not self.CP.pcmCruise and not self.split_lkas_and_acc))
     if self.joystick_mode and self.sm.rcv_frame['testJoystick'] > 0 and self.sm['testJoystick'].buttons[0]:
       CC.cruiseControl.cancel = True
 
