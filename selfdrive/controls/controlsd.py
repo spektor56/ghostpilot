@@ -99,9 +99,15 @@ class Controls:
 
     # set alternative experiences from parameters
     self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
+    self.split_lkas_and_acc = self.params.get_bool("SplitLkasAndAcc")
+    self.resume_lkas_after_brake = self.params.get_bool("ResumeLkasAfterBrake")
     self.CP.alternativeExperience = 0
     if not self.disengage_on_accelerator:
       self.CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.DISABLE_DISENGAGE_ON_GAS
+    if self.split_lkas_and_acc:
+      self.CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.SPLIT_LKAS_AND_ACC
+    if self.resume_lkas_after_brake:
+      self.CP.alternativeExperience |= ALTERNATIVE_EXPERIENCE.RESUME_LKAS_AFTER_BRAKE
 
     # read params
     self.is_metric = self.params.get_bool("IsMetric")
