@@ -8,6 +8,7 @@ from openpilot.selfdrive.car import create_gas_interceptor_command
 from openpilot.selfdrive.car.honda import hondacan
 from openpilot.selfdrive.car.honda.values import CruiseButtons, VISUAL_HUD, HONDA_BOSCH, HONDA_BOSCH_RADARLESS, HONDA_NIDEC_ALT_PCM_ACCEL, CarControllerParams
 from openpilot.selfdrive.controls.lib.drive_helpers import rate_limit
+from openpilot.common.params import Params
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
 LongCtrlState = car.CarControl.Actuators.LongControlState
@@ -95,7 +96,7 @@ def process_hud_alert(hud_alert):
 
 HUDData = namedtuple("HUDData",
                      ["pcm_accel", "v_cruise", "lead_visible",
-                      "lanes_visible", "fcw", "acc_alert", "steer_required"])
+                      "lanes_visible", "fcw", "acc_alert", "steer_required", "dashed_lanes"])
 
 
 def rate_limit_steer(new_steer, last_steer):
@@ -114,9 +115,11 @@ class CarController:
     self.braking = False
     self.brake_steady = 0.
     self.brake_last = 0.
+    self.signal_last = 0.
     self.apply_brake_last = 0
     self.last_pump_ts = 0.
     self.stopping_counter = 0
+    self.split_lkas_and_acc = False
 
     self.accel = 0.0
     self.speed = 0.0
@@ -130,8 +133,9 @@ class CarController:
     conversion = hondacan.get_cruise_speed_conversion(self.CP.carFingerprint, CS.is_metric)
     hud_v_cruise = hud_control.setSpeed / conversion if hud_control.speedVisible else 255
     pcm_cancel_cmd = CC.cruiseControl.cancel
+    self.split_lkas_and_acc = Params().get_bool("SplitLkasAndAcc")
 
-    if CC.longActive:
+    if CC.longActive and (not self.split_lkas_and_acc or CS.out.cruiseState.enabled):
       accel = actuators.accel
       gas, brake = compute_gas_brake(actuators.accel, CS.out.vEgo, self.CP.carFingerprint)
     else:
@@ -218,12 +222,17 @@ class CarController:
           self.gas = interp(accel, self.params.BOSCH_GAS_LOOKUP_BP, self.params.BOSCH_GAS_LOOKUP_V)
 
           stopping = actuators.longControlState == LongCtrlState.stopping
+          if self.split_lkas_and_acc and not CS.out.cruiseState.enabled:
+            self.gas = 0.0
           self.stopping_counter = self.stopping_counter + 1 if stopping else 0
-          can_sends.extend(hondacan.create_acc_commands(self.packer, CC.enabled, CC.longActive, self.accel, self.gas,
-                                                        self.stopping_counter, self.CP.carFingerprint))
+          can_sends.extend(hondacan.create_acc_commands(self.packer, CC.enabled and (not self.split_lkas_and_acc or CS.out.cruiseState.enabled),
+                                                        CC.longActive, self.accel, self.gas, self.stopping_counter, self.CP.carFingerprint))
         else:
           apply_brake = clip(self.brake_last - wind_brake, 0.0, 1.0)
           apply_brake = int(clip(apply_brake * self.params.NIDEC_BRAKE_MAX, 0, self.params.NIDEC_BRAKE_MAX - 1))
+          if (self.split_lkas_and_acc and not CS.out.cruiseState.enabled and
+              not (CS.CP.pcmCruise and CS.accEnabled and CS.CP.minEnableSpeed > 0 and not CS.out.cruiseState.enabled)):
+            apply_brake = 0.0
           pump_on, self.last_pump_ts = brake_pump_hysteresis(apply_brake, self.apply_brake_last, self.last_pump_ts, ts)
 
           pcm_override = True
@@ -240,7 +249,7 @@ class CarController:
             # This prevents unexpected pedal range rescaling
             # Sending non-zero gas when OP is not enabled will cause the PCM not to respond to throttle as expected
             # when you do enable.
-            if CC.longActive:
+            if CC.longActive and (not self.split_lkas_and_acc or CS.out.cruiseState.enabled):
               self.gas = clip(gas_mult * (gas - brake + wind_brake * 3 / 4), 0., 1.)
             else:
               self.gas = 0.0
@@ -248,8 +257,13 @@ class CarController:
 
     # Send dashboard UI commands.
     if self.frame % 10 == 0:
-      hud = HUDData(int(pcm_accel), int(round(hud_v_cruise)), hud_control.leadVisible,
-                    hud_control.lanesVisible, fcw_display, acc_alert, steer_required)
+      if self.split_lkas_and_acc:
+        hud = HUDData(int(pcm_accel), (int(round(hud_v_cruise)) if not(CC.enabled and CS.out.cruiseState.enabled) else 255),
+              hud_control.leadVisible if CC.enabled and CS.out.cruiseState.enabled else 0,
+              hud_control.lanesVisible and CC.latActive, fcw_display, acc_alert, steer_required, CS.lkasEnabled and not CC.latActive)
+      else:
+        hud = HUDData(int(pcm_accel), int(round(hud_v_cruise)), hud_control.leadVisible,
+                      hud_control.lanesVisible, fcw_display, acc_alert, steer_required, False)
       can_sends.extend(hondacan.create_ui_commands(self.packer, self.CP, CC.enabled, pcm_speed, hud, CS.is_metric, CS.acc_hud, CS.lkas_hud))
 
       if self.CP.openpilotLongitudinalControl and self.CP.carFingerprint not in HONDA_BOSCH:
