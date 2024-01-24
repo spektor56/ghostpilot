@@ -1107,6 +1107,22 @@ Cela peut prendre jusqu&apos;à une minute.</translation>
         <source>Enable the openpilot longitudinal control (alpha) toggle to allow Experimental mode.</source>
         <translation>Activer le contrôle longitudinal d&apos;openpilot (en alpha) pour autoriser le mode expérimental.</translation>
     </message>
+    <message>
+        <source>Split LKAS and ACC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable the ability to toggle LKAS and ACC independently of each other. Allows openpilot to be engaged after pressing the LKAS button and doesn&apos;t block openpilot from engaging after pressing the cancel button.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Resume LKAS after braking</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>If the previous disengagement is from a brake press, allow openpilot to engage after releasing the brake.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>Updater</name>

@@ -1103,6 +1103,22 @@ This may take up to a minute.</source>
         <source>The driving visualization will transition to the road-facing wide-angle camera at low speeds to better show some turns. The Experimental mode logo will also be shown in the top right corner. When a navigation destination is set and the driving model is using it as input, the driving path on the map will turn green.</source>
         <translation>行駛畫面將在低速時切換至道路朝向的廣角鏡頭，以更好地顯示一些轉彎。實驗模式圖示也將顯示在右上角。當設定了導航目的地並且行駛模型正在將其作為輸入時，地圖上的行駛路徑將變為綠色。</translation>
     </message>
+    <message>
+        <source>Split LKAS and ACC</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enable the ability to toggle LKAS and ACC independently of each other. Allows openpilot to be engaged after pressing the LKAS button and doesn&apos;t block openpilot from engaging after pressing the cancel button.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Resume LKAS after braking</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>If the previous disengagement is from a brake press, allow openpilot to engage after releasing the brake.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>Updater</name>
