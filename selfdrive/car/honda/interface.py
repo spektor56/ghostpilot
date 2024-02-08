@@ -309,16 +309,33 @@ class CarInterface(CarInterfaceBase):
   def _update(self, c):
     ret = self.CS.update(self.cp, self.cp_cam, self.cp_body)
 
+    ret.lkasEnabled = self.CS.lkasEnabled
+    ret.accEnabled = self.CS.accEnabled
+    ret.leftBlinkerOn = self.CS.leftBlinkerOn
+    ret.rightBlinkerOn = self.CS.rightBlinkerOn
+    ret.belowLaneChangeSpeed = self.CS.belowLaneChangeSpeed
+
     ret.buttonEvents = [
       *create_button_events(self.CS.cruise_buttons, self.CS.prev_cruise_buttons, BUTTONS_DICT),
       *create_button_events(self.CS.cruise_setting, self.CS.prev_cruise_setting, {1: ButtonType.altButton1}),
     ]
+
+    extraGears = []
+    if not (self.CS.CP.openpilotLongitudinalControl or self.CS.CP.enableGasInterceptor):
+      extraGears = [car.CarState.GearShifter.sport, car.CarState.GearShifter.low]
+
     split_lkas_and_acc = Params().get_bool("SplitLkasAndAcc")
     # events
-    events = self.create_common_events(ret, pcm_enable=False, ignore_buttons=split_lkas_and_acc)
+    events = self.create_common_events(ret, extra_gears=extraGears, pcm_enable=False, ignore_buttons=split_lkas_and_acc)
 
     if split_lkas_and_acc:
       for b in ret.buttonEvents:
+        # do enable on both accel and decel buttons
+        if not self.CP.pcmCruise and b.type in (ButtonType.accelCruise, ButtonType.decelCruise) and not b.pressed:
+          if not self.CS.lkasEnabled:
+            events.add(EventName.buttonEnable)
+          else:
+            events.add(EventName.silentButtonEnable)
 
         # do disable on LKAS button if ACC is disabled
         if b.type in [ButtonType.altButton1] and b.pressed:
@@ -340,19 +357,24 @@ class CarInterface(CarInterfaceBase):
 
     if self.CP.pcmCruise and ret.vEgo < self.CP.minEnableSpeed and (not split_lkas_and_acc or not self.CS.lkasEnabled):
       events.add(EventName.belowEngageSpeed)
-    if not split_lkas_and_acc:
-      if self.CP.pcmCruise:
-        # we engage when pcm is active (rising edge)
-        if ret.cruiseState.enabled and not self.CS.out.cruiseState.enabled:
-          events.add(EventName.pcmEnable)
-        elif not ret.cruiseState.enabled and (c.actuators.accel >= 0. or not self.CP.openpilotLongitudinalControl):
-          # it can happen that car cruise disables while comma system is enabled: need to
-          # keep braking if needed or if the speed is very low
-          if ret.vEgo < self.CP.minEnableSpeed + 2.:
-            # non loud alert if cruise disables below 25mph as expected (+ a little margin)
-            events.add(EventName.speedTooLow)
-          else:
-            events.add(EventName.cruiseDisabled)
+
+    if self.CP.pcmCruise:
+      # we engage when pcm is active (rising edge)
+      if ret.cruiseState.enabled and not self.CS.out.cruiseState.enabled:
+        events.add(EventName.pcmEnable)
+      elif (split_lkas_and_acc and not self.CS.lkasEnabled) and not ret.cruiseState.enabled and self.CS.out.cruiseState.enabled:
+        events.add(EventName.pcmDisable)
+      elif ((not split_lkas_and_acc or not self.CS.lkasEnabled)
+            and not ret.cruiseState.enabled
+            and (c.actuators.accel >= 0. or not self.CP.openpilotLongitudinalControl)):
+        # it can happen that car cruise disables while comma system is enabled: need to
+        # keep braking if needed or if the speed is very low
+        if ret.vEgo < self.CP.minEnableSpeed + 2.:
+          # non loud alert if cruise disables below 25mph as expected (+ a little margin)
+          events.add(EventName.speedTooLow)
+        else:
+          events.add(EventName.cruiseDisabled)
+
     if self.CS.CP.minEnableSpeed > 0 and ret.vEgo < 0.001:
       events.add(EventName.manualRestart)
 
