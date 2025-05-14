@@ -452,6 +452,19 @@ void pandad_run(std::vector<Panda *> &pandas) {
       send_peripheral_state(peripheral_panda, &pm);
     }
 
+    // Forward logs from pandas to cloudlog if available
+    for (auto *panda : pandas) {
+      std::string log = panda->serial_read();
+      if (!log.empty()) {
+        if (log.find("Register 0x") != std::string::npos) {
+          // Log register divergent faults as errors
+          LOGE("%s", log.c_str());
+        } else {
+          LOGD("%s", log.c_str());
+        }
+      }
+    }
+
     rk.keepTime();
   }
 
