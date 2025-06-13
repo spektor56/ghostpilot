@@ -34,7 +34,7 @@ MAX_ALLOWED_YAW_SPREAD = np.radians(2)
 MAX_ALLOWED_PITCH_SPREAD = np.radians(4)
 RPY_INIT = np.array([0.0,0.0,0.0])
 WIDE_FROM_DEVICE_EULER_INIT = np.array([0.0, 0.0, 0.0])
-HEIGHT_INIT = np.array([1.22])
+HEIGHT_INIT = np.array([1.42])
 
 # These values are needed to accommodate the model frame in the narrow cam of the C3
 PITCH_LIMITS = np.array([-0.09074112085129739, 0.17])
