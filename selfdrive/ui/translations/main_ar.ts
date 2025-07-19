@@ -933,7 +933,7 @@ Firehose Mode allows you to maximize your training data uploads to improve openp
 <context>
     <name>TogglesPanel</name>
     <message>
-        <source>Enable openpilot</source>
+        <source>Enable ghostpilot</source>
         <translation>تمكين openpilot</translation>
     </message>
     <message>

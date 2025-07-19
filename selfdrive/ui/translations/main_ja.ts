@@ -912,7 +912,7 @@ Firehoseモードを有効にすると学習データを最大限アップロー
 <context>
     <name>TogglesPanel</name>
     <message>
-        <source>Enable openpilot</source>
+        <source>Enable ghostpilot</source>
         <translation>openpilotを有効化</translation>
     </message>
     <message>
