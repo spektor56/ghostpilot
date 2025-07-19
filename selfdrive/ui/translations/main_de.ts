@@ -915,7 +915,7 @@ Der Firehose-Modus ermöglicht es dir, deine Trainingsdaten-Uploads zu maximiere
 <context>
     <name>TogglesPanel</name>
     <message>
-        <source>Enable openpilot</source>
+        <source>Enable ghostpilot</source>
         <translation>Openpilot aktivieren</translation>
     </message>
     <message>
