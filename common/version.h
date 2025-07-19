@@ -1,1 +1,1 @@
-#define COMMA_VERSION "0.9.10-GP-carnival"
+#define COMMA_VERSION "0.9.10"
