@@ -1024,7 +1024,7 @@ Se quiser continuar, use https://flash.comma.ai para restaurar seu dispositivo a
 <context>
     <name>TogglesPanel</name>
     <message>
-        <source>Enable openpilot</source>
+        <source>Enable ghostpilot</source>
         <translation>Ativar openpilot</translation>
     </message>
     <message>
