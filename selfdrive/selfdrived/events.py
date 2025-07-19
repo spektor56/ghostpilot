@@ -588,7 +588,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
       "Lane Keeping Assist is OFF",
       "Manual Steering Required",
       AlertStatus.normal, AlertSize.mid,
-      Priority.LOW, VisualAlert.none, AudibleAlert.none, 1.),
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, 2.),
   },
 
   EventName.manualLongitudinalRequired: {
@@ -596,7 +596,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
       "Adaptive Cruise Control is OFF",
       "Manual Gas/Brakes Required",
       AlertStatus.normal, AlertSize.mid,
-      Priority.LOW, VisualAlert.none, AudibleAlert.none, 1.),
+      Priority.LOW, VisualAlert.none, AudibleAlert.none, 2.),
   },
 
   EventName.steerSaturated: {
