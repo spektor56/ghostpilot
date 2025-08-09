@@ -129,6 +129,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"UptimeOffroad", {PERSISTENT, FLOAT, "0.0"}},
     {"UptimeOnroad", {PERSISTENT, FLOAT, "0.0"}},
     {"Version", {PERSISTENT, STRING}},
-    {"ResumeLkasAfterBrake", PERSISTENT, BOOL, 1},
-    {"SplitLkasAndAcc", PERSISTENT, BOOL, 1},
+    {"ResumeLkasAfterBrake", {PERSISTENT, BOOL, 1}},
+    {"SplitLkasAndAcc", {PERSISTENT, BOOL, 1}},
 };
