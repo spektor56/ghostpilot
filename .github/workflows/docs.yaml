@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - 0.10.0-carnival
   pull_request:
   workflow_call:
     inputs:
